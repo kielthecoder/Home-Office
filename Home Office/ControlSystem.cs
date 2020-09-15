@@ -8,7 +8,7 @@ using Crestron.SimplSharpPro.DM;
 using Crestron.SimplSharpPro.Gateways;
 using Crestron.SimplSharpPro.UI;
 
-namespace HomeOffice
+namespace Home_Office
 {
     public class ControlSystem : CrestronControlSystem
     {
@@ -19,9 +19,7 @@ namespace HomeOffice
         private Tst902 _tp;
         private XpanelForSmartGraphics _xpanel;
 
-        private List<BasicTriListWithSmartObject> _panels;
-
-        public static readonly uint[] SourceSelectJoins = { 31, 32 };
+        private UI _panels;
 
         public ControlSystem()
             : base()
@@ -50,7 +48,7 @@ namespace HomeOffice
             }
         }
 
-        private void Log(string method, string msg)
+        public void Log(string method, string msg)
         {
             CrestronConsole.PrintLine("{0}: {1}", method, msg);
         }
@@ -76,39 +74,22 @@ namespace HomeOffice
 
         private void InitializeUI()
         {
+            _panels = new UI(this);
+
             if (_gw.Registered)
             {
                 Log("InitializeUI", String.Format("Creating TST-902 on {0}...", _gw.Name));
-
                 _tp = new Tst902(0x03, _gw);
-                _tp.SigChange += _tp_SigChange;
-                
-                _tp.ExtenderRfWiFiReservedSigs.Use();
-                _tp.ExtenderRfWiFiReservedSigs.DeviceExtenderSigChange += _tp_RfWifi_SigChange;
+                _panels.Add_902(_tp);
             }
 
             Log("InitializeUI", "Creating XPanel...");
-
             _xpanel = new XpanelForSmartGraphics(0x04, this);
-            _xpanel.SigChange += _tp_SigChange;
-
-            Log("InitializeUI", "Registering devices...");
-
-            _panels = new List<BasicTriListWithSmartObject>();
-            _panels.Add(_tp);
             _panels.Add(_xpanel);
 
-            foreach (var tp in _panels)
-            {
-                if (tp.Register() == eDeviceRegistrationUnRegistrationResponse.Success)
-                {
-                    Log("InitializeUI", String.Format("Registered {0}: ID {1}", tp.Name, tp.ID));
-                }
-                else
-                {
-                    Log("InitializeUI", String.Format("Failed to register {0}: {1}", tp.Name, tp.RegistrationFailureReason));
-                }
-            }
+            Log("InitializeUI", "Registering devices...");
+            _panels.Register();
+
         }
 
         private void InitializeDM()
@@ -122,17 +103,6 @@ namespace HomeOffice
                 Log("InitializeDM", String.Format("Failed to register {0}: {1}", _sw.Name, _sw.RegistrationFailureReason));
         }
 
-        private int GetLast(uint[] joins, uint match)
-        {
-            for (int i = 0; i < joins.Length; i++)
-            {
-                if (joins[i] == match)
-                    return i + 1;
-            }
-
-            return 0;
-        }
-
         public void SetSource(int src)
         {
             switch (src)
@@ -141,21 +111,17 @@ namespace HomeOffice
                     _sw.HdmiOutputs[1].VideoOut = _sw.HdmiInputs[1];
                     _sw.HdmiOutputs[2].VideoOut = _sw.HdmiInputs[2];
 
-                    foreach (var tp in _panels)
-                    {
-                        tp.BooleanInput[32].BoolValue = false;
-                        tp.BooleanInput[31].BoolValue = true;
-                    }
+                    _panels.SetBool(UI.SourceSelectJoins[1], false);
+                    _panels.SetBool(UI.SourceSelectJoins[0], true);
+
                     break;
                 case 2:
                     _sw.HdmiOutputs[1].VideoOut = _sw.HdmiInputs[3];
                     _sw.HdmiOutputs[2].VideoOut = _sw.HdmiInputs[4];
 
-                    foreach (var tp in _panels)
-                    {
-                        tp.BooleanInput[31].BoolValue = false;
-                        tp.BooleanInput[32].BoolValue = true;
-                    }
+                    _panels.SetBool(UI.SourceSelectJoins[0], false);
+                    _panels.SetBool(UI.SourceSelectJoins[1], false);
+
                     break;
             }
         }
@@ -185,84 +151,6 @@ namespace HomeOffice
                 _sw.HdmiInputs[number].HdmiInputPort.VideoAttributes.HorizontalResolutionFeedback.UShortValue,
                 _sw.HdmiInputs[number].HdmiInputPort.VideoAttributes.VerticalResolutionFeedback.UShortValue,
                 _sw.HdmiInputs[number].HdmiInputPort.VideoAttributes.FramesPerSecondFeedback.UShortValue));
-        }
-
-        void _tp_SigChange(BasicTriList dev, SigEventArgs args)
-        {
-            if (args.Sig.Type == eSigType.Bool)
-            {
-                if (args.Sig.BoolValue)
-                    _tp_Press(dev, args.Sig.Number);
-                else
-                    _tp_Release(dev, args.Sig.Number);
-            }
-        }
-
-        void _tp_Press(BasicTriList dev, uint join)
-        {
-            if ((join >= SourceSelectJoins[0]) && (join <= SourceSelectJoins[SourceSelectJoins.Length - 1]))
-            {
-                SetSource(GetLast(SourceSelectJoins, join));
-            }
-        }
-
-        void _tp_Release(BasicTriList dev, uint join)
-        {
-        }
-
-        void _tp_RfWifi_SigChange(DeviceExtender extender, SigEventArgs args)
-        {
-            switch (args.Sig.Type)
-            {
-                case eSigType.Bool:
-                    switch (args.Sig.Number)
-                    {
-                        case 17547:
-                            if (_tp.ExtenderRfWiFiReservedSigs.AcLineStatusFeedback.BoolValue)
-                            {
-                                _tp.UShortInput[2].UShortValue = 2;
-                            }
-                            else
-                            {
-                                if (_tp.ExtenderRfWiFiReservedSigs.BatteryLevelFeedback.UShortValue < 50)
-                                    _tp.UShortInput[2].UShortValue = 0;
-                                else
-                                    _tp.UShortInput[2].UShortValue = 1;
-                            }
-                            break;
-                    }
-                    break;
-                case eSigType.UShort:
-                    switch (args.Sig.Number)
-                    {
-                        case 17532:
-                            var battery = args.Sig.UShortValue;
-
-                            if (_tp.ExtenderRfWiFiReservedSigs.AcLineStatusFeedback.BoolValue)
-                            {
-                                _tp.UShortInput[2].UShortValue = 2;
-                            }
-                            else
-                            {
-                                if (battery < 50)
-                                    _tp.UShortInput[2].UShortValue = 0;
-                                else
-                                    _tp.UShortInput[2].UShortValue = 1;
-                            }
-
-                            break;
-                        case 17533:
-                            var rf_sig = args.Sig.UShortValue;
-
-                            if (rf_sig < 50)
-                                _tp.UShortInput[1].UShortValue = 1;
-                            else
-                                _tp.UShortInput[1].UShortValue = 0;
-
-                            break;
-                    }
-                    break;
-            }
         }
     }
 }
