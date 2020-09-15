@@ -8,7 +8,7 @@ namespace Home_Office
 {
     public class UI
     {
-        public static readonly uint[] SourceSelectJoins = { 31, 32 };
+        public static readonly uint[] SourceSelectJoins = { 31, 32, 33 };
 
         private ControlSystem _cs;
         private List<BasicTriListWithSmartObject> _panels;
@@ -46,7 +46,7 @@ namespace Home_Office
                 else
                 {
                     _cs.Log("UI::Register", String.Format("Failed to register {0}: {1}", tp.Name, tp.RegistrationFailureReason));
-                }
+                } 
             }
         }
 
@@ -54,6 +54,12 @@ namespace Home_Office
         {
             foreach (var tp in _panels)
                 tp.BooleanInput[join].BoolValue = state;
+        }
+
+        public void Interlock(uint[] group, uint join)
+        {
+            foreach (var j in group)
+                SetBool(j, j == join);
         }
 
         public static int GetLast(uint[] joins, uint match)

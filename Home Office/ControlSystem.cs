@@ -111,16 +111,21 @@ namespace Home_Office
                     _sw.HdmiOutputs[1].VideoOut = _sw.HdmiInputs[1];
                     _sw.HdmiOutputs[2].VideoOut = _sw.HdmiInputs[2];
 
-                    _panels.SetBool(UI.SourceSelectJoins[1], false);
-                    _panels.SetBool(UI.SourceSelectJoins[0], true);
+                    _panels.Interlock(UI.SourceSelectJoins, UI.SourceSelectJoins[0]);
 
                     break;
                 case 2:
                     _sw.HdmiOutputs[1].VideoOut = _sw.HdmiInputs[3];
                     _sw.HdmiOutputs[2].VideoOut = _sw.HdmiInputs[4];
 
-                    _panels.SetBool(UI.SourceSelectJoins[0], false);
-                    _panels.SetBool(UI.SourceSelectJoins[1], false);
+                    _panels.Interlock(UI.SourceSelectJoins, UI.SourceSelectJoins[1]);
+
+                    break;
+                case 3:
+                    _sw.HdmiOutputs[1].VideoOut = _sw.HdmiInputs[1];
+                    _sw.HdmiOutputs[2].VideoOut = _sw.HdmiInputs[3];
+
+                    _panels.Interlock(UI.SourceSelectJoins, UI.SourceSelectJoins[2]);
 
                     break;
             }
