@@ -36,3 +36,7 @@ SPlsWork/
 *.xweb/
 *.prj/
 *.c3prj/
+
+# VS2008
+bin/
+obj/
