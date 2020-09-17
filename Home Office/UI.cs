@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Crestron.SimplSharpPro;
 using Crestron.SimplSharpPro.DeviceSupport;
 using Crestron.SimplSharpPro.UI;
+using Home_Office.Rooms;
 
 namespace Home_Office
 {
@@ -10,12 +11,12 @@ namespace Home_Office
     {
         public static readonly uint[] SourceSelectJoins = { 31, 32, 33 };
 
-        private ControlSystem _cs;
+        private Room _room;
         private List<BasicTriListWithSmartObject> _panels;
 
-        public UI(ControlSystem cs)
+        public UI(Room room)
         {
-            _cs = cs;
+            _room = room;
             _panels = new List<BasicTriListWithSmartObject>();
         }
 
@@ -41,11 +42,11 @@ namespace Home_Office
             {
                 if (tp.Register() == eDeviceRegistrationUnRegistrationResponse.Success)
                 {
-                    _cs.Log("UI::Register", String.Format("Registered {0}: ID {1}", tp.Name, tp.ID));
+                    _room.Log(String.Format("Registered {0}: ID {1}", tp.Name, tp.ID));
                 }
                 else
                 {
-                    _cs.Log("UI::Register", String.Format("Failed to register {0}: {1}", tp.Name, tp.RegistrationFailureReason));
+                    _room.Log(String.Format("Failed to register {0}: {1}", tp.Name, tp.RegistrationFailureReason));
                 } 
             }
         }
@@ -88,7 +89,7 @@ namespace Home_Office
         {
             if ((join >= SourceSelectJoins[0]) && (join <= SourceSelectJoins[SourceSelectJoins.Length - 1]))
             {
-                _cs.SetSource(GetLast(SourceSelectJoins, join));
+                (_room as Office).SetSource(GetLast(SourceSelectJoins, join));
             }
         }
 
