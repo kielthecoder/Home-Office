@@ -10,12 +10,12 @@ namespace Home_Office
     {
         public static readonly uint[] SourceSelectJoins = { 31, 32, 33 };
 
-        private ControlSystem _cs;
+        private Room _room;
         private List<BasicTriListWithSmartObject> _panels;
 
-        public UI(ControlSystem cs)
+        public UI(Room room)
         {
-            _cs = cs;
+            _room = room;
             _panels = new List<BasicTriListWithSmartObject>();
         }
 
@@ -41,11 +41,11 @@ namespace Home_Office
             {
                 if (tp.Register() == eDeviceRegistrationUnRegistrationResponse.Success)
                 {
-                    _cs.Log("UI::Register", String.Format("Registered {0}: ID {1}", tp.Name, tp.ID));
+                    _room.Log("UI::Register", "Registered {0}: ID {1}", tp.Name, tp.ID.ToString());
                 }
                 else
                 {
-                    _cs.Log("UI::Register", String.Format("Failed to register {0}: {1}", tp.Name, tp.RegistrationFailureReason));
+                    _room.Log("UI::Register", "Failed to register {0}: {1}", tp.Name, tp.RegistrationFailureReason.ToString());
                 } 
             }
         }
@@ -88,12 +88,17 @@ namespace Home_Office
         {
             if ((join >= SourceSelectJoins[0]) && (join <= SourceSelectJoins[SourceSelectJoins.Length - 1]))
             {
-                _cs.SetSource(GetLast(SourceSelectJoins, join));
+                _room.SetSource(GetLast(SourceSelectJoins, join));
+            }
+            else
+            {
+                _room.Press(dev, join);
             }
         }
 
         private void Release(BasicTriList dev, uint join)
         {
+            _room.Release(dev, join);
         }
 
         void RfWifi_SigChange(DeviceExtender extender, SigEventArgs args)
