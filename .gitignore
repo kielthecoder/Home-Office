@@ -40,3 +40,5 @@ SPlsWork/
 # VS2008
 bin/
 obj/
+*.suo
+*.projectinfo
