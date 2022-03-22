@@ -1,0 +1,118 @@
+// Dealer Name: ConvergeOne
+// System Name:
+// System Number:
+// Programmer: Kiel Lofstrand
+// Comments:
+
+// --- Compiler Directives --------------------------------------------------
+// #CATEGORY "" 
+// #DIGITAL_EXPAND 
+// #ANALOG_SERIAL_EXPAND 
+
+#DEFAULT_VOLATILE
+#ENABLE_STACK_CHECKING
+#ENABLE_TRACE
+// #PRINT_TO_TRACE
+
+#DEFINE_CONSTANT MAX_PERIODS 10
+
+#USER_SIMPLSHARP_LIBRARY "C1"
+
+// --- Inputs ---------------------------------------------------------------
+
+DIGITAL_INPUT Refresh;
+// ANALOG_INPUT 
+// STRING_INPUT 
+// BUFFER_INPUT 
+
+// --- Outputs --------------------------------------------------------------
+
+DIGITAL_OUTPUT Refresh_Busy_Fb;
+ANALOG_OUTPUT Period_Count;
+STRING_OUTPUT Period_Name[MAX_PERIODS];
+STRING_OUTPUT Period_Temperature[MAX_PERIODS];
+STRING_OUTPUT Period_Wind[MAX_PERIODS];
+STRING_OUTPUT Period_Icon[MAX_PERIODS];
+STRING_OUTPUT Period_Forecast[MAX_PERIODS];
+
+// --- Sockets --------------------------------------------------------------
+// TCP_CLIENT
+// TCP_SERVER
+// UDP_SOCKET
+
+// --- Parameters -----------------------------------------------------------
+// INTEGER_PARAMETER
+// SIGNED_INTEGER_PARAMETER
+// LONG_INTEGER_PARAMETER
+// SIGNED_LONG_INTEGER_PARAMETER
+STRING_PARAMETER Location[50];
+STRING_PARAMETER Grid[50];
+
+// --- Global Variables -----------------------------------------------------
+// INTEGER
+// LONG_INTEGER
+// SIGNED_INTEGER
+// SIGNED_LONG_INTEGER
+// STRING
+
+CurrentWeather weather;
+
+// --- Functions ------------------------------------------------------------
+// Function MyFunction1()
+// Integer_Function MyIntFunction1()
+// String_Function MyStrFunction1()
+
+// --- Events ---------------------------------------------------------------
+
+THREADSAFE PUSH Refresh
+{
+	INTEGER i;
+	
+	Refresh_Busy_Fb = 1;
+	
+	weather.Refresh();
+	
+	Period_Count = weather.Forecast.NumPeriods();
+	
+	For (i = 1 To MAX_PERIODS)
+	{
+		If (i > weather.Forecast.NumPeriods())
+		{
+			Period_Name[i] = "";
+			Period_Icon[i] = "";
+			Period_Forecast[i] = "";
+			Period_Temperature[i] = "";
+			Period_Wind[i] = "";
+		}
+		Else
+		{
+			Period_Name[i] = weather.Forecast.periods[i - 1].name;
+			Period_Icon[i] = weather.Forecast.periods[i - 1].icon;
+			Period_Forecast[i] = weather.Forecast.periods[i - 1].shortForecast;
+			
+			MakeString(Period_Temperature[i], "%d %s", weather.Forecast.periods[i - 1].temperature, weather.Forecast.periods[i - 1].temperatureUnit);
+			MakeString(Period_Wind[i], "%s %s", weather.Forecast.periods[i - 1].windSpeed, weather.Forecast.periods[i - 1].windDirection);
+		}
+	}
+	
+	Refresh_Busy_Fb = 0;
+}
+
+// RELEASE input
+// CHANGE input
+// EVENT
+// SOCKETCONNECT
+// SOCKETDISCONNECT
+// SOCKETRECEIVE
+// SOCKETSTATUS
+
+// --- Main -----------------------------------------------------------------
+
+Function Main()
+{
+	weather.Location = Location;
+	weather.Grid = Grid;
+	
+	WaitForInitializationComplete();
+}
+
